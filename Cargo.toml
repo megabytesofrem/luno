@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "luno",
+    "luno_cli",
+]
