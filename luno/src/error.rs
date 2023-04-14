@@ -1,48 +1,40 @@
-use core::fmt;
+use crate::{
+    ast::Type,
+    lexer::{Location, TokenKind},
+};
 
-use crate::lexer::{Location, TokenKind};
+use thiserror::Error;
 
-#[derive(Debug, PartialEq)]
-pub enum ParseError {
+#[derive(Debug, PartialEq, Error)]
+pub enum SyntaxError {
+    #[error("Expected {expected:?}, but got {found:?}")]
     UnexpectedToken {
         location: Location,
         found: TokenKind,
         expected: TokenKind,
     },
 
+    #[error("Expected {expected:?}, but got EOF")]
     UnexpectedEOF {
         location: Location,
         expected: TokenKind,
     },
 
-    UnknownType,
-}
+    #[error("Type mismatch: expected {expected:?}, but got {found:?}")]
+    TypeMismatch { found: Type, expected: Type },
 
-#[derive(Debug, PartialEq)]
-pub enum ScopeError {
+    #[error("Variable {name} is not in scope")]
     NotInScope { name: String },
-    AlreadyInScope { name: String },
-}
 
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ParseError::UnexpectedToken {
-                location: _,
-                found,
-                expected,
-            } => {
-                write!(f, "Expected {expected:?}, but got {found:?}")
-            }
-            ParseError::UnexpectedEOF {
-                location: _,
-                expected,
-            } => {
-                write!(f, "Expected {expected:?}, but got EOF")
-            }
-            ParseError::UnknownType => {
-                write!(f, "Unknown type")
-            }
-        }
-    }
+    #[error("Variable {name} is already in scope")]
+    AlreadyInScope { name: String },
+
+    #[error("Expected {expected} arguments, but got {found}")]
+    WrongNumberOfArgs { expected: usize, found: usize },
+
+    #[error("{name} is not a function")]
+    NotAFunction { name: String },
+
+    #[error("Unknown type")]
+    UnknownType,
 }

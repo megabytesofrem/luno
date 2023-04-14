@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 logos = "0.13.0"
+thiserror = "1.0.40"
