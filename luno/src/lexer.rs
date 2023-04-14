@@ -53,6 +53,8 @@ pub enum TokenKind {
     Fn,
     #[token("for")]
     For,
+    #[token("in")]
+    In,
     #[token("do")]
     Do,
     #[token("of")]

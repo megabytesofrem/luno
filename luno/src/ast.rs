@@ -22,6 +22,8 @@ pub enum Type {
 
     /// A function type
     Fn(Vec<Type>, Box<Type>),
+
+    Unspecified,
 }
 
 #[derive(Debug, Clone)]
@@ -49,11 +51,25 @@ pub enum Stmt {
         then_block: Block,
         else_block: Option<Block>,
     },
+    For {
+        name: String,
+        range: Expr,
+        block: Block,
+    },
     While {
         cond: Expr,
         block: Block,
     },
+    Import {
+        path: String,
+    },
     Ret {
         value: Expr,
     },
+}
+
+#[derive(Debug, Clone)]
+pub struct Program {
+    /// List of statements in the program
+    pub stmts: Vec<Stmt>,
 }

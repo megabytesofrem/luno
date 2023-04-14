@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 
 use crate::{
-    ast::{Block, Expr, Stmt, Type},
+    ast::{Block, Expr, Program, Stmt, Type},
     error::ParseError,
     lexer::{lex_tokens, Token, TokenKind},
 };
@@ -217,22 +217,43 @@ impl<'a> Parser<'a> {
 
     // Statement parsing
 
+    pub(crate) fn parse_type_name(&mut self) -> Result<Type, ParseError> {
+        match self.parse_ident()?.as_str() {
+            "int" => Ok(Type::Int),
+            "string" => Ok(Type::String),
+            "bool" => Ok(Type::Bool),
+            _ => Err(ParseError::UnknownType),
+        }
+    }
+
     pub(crate) fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
         let next_token = self.next().unwrap();
         match next_token.kind {
             TokenKind::Var => {
                 let name = self.parse_ident()?;
-                self.expect(TokenKind::Colon)?;
-                let type_ = self.parse_type_name()?;
                 self.expect(TokenKind::Equal)?;
                 let value = self.parse_expr()?;
-                Ok(Stmt::VarDeclare { type_, name, value })
+
+                // We will infer the type of the variable later
+                Ok(Stmt::VarDeclare {
+                    type_: Type::Unspecified,
+                    name,
+                    value,
+                })
             }
             TokenKind::Ident => {
                 let name = self.src[next_token.span].to_string();
-                self.expect(TokenKind::Equal)?;
-                let value = self.parse_expr()?;
-                Ok(Stmt::Assign { name, value })
+                match self.peek().unwrap().kind {
+                    TokenKind::LParen => {
+                        let expr = self.parse_call()?;
+                        Ok(Stmt::Expr { expr })
+                    }
+                    _ => {
+                        self.expect(TokenKind::Equal)?;
+                        let value = self.parse_expr()?;
+                        Ok(Stmt::Assign { name, value })
+                    }
+                }
             }
             TokenKind::If => {
                 let cond = self.parse_expr()?;
@@ -249,13 +270,24 @@ impl<'a> Parser<'a> {
                     else_block,
                 })
             }
+            TokenKind::For => {
+                let name = self.parse_ident()?;
+                self.expect(TokenKind::Equal)?;
+                let range = self.parse_expr()?;
+                self.expect(TokenKind::Do)?;
+                let block = self.parse_block()?;
+                Ok(Stmt::For { name, range, block })
+            }
             TokenKind::While => {
                 let cond = self.parse_expr()?;
                 self.expect(TokenKind::Do)?;
                 let block = self.parse_block()?;
                 Ok(Stmt::While { cond, block })
             }
-
+            TokenKind::Import => {
+                let path = self.parse_ident()?;
+                Ok(Stmt::Import { path })
+            }
             TokenKind::Ret => {
                 let value = self.parse_expr()?;
                 Ok(Stmt::Ret { value })
@@ -275,28 +307,12 @@ impl<'a> Parser<'a> {
         Ok(Block { stmts })
     }
 
-    pub(crate) fn parse_type_name(&mut self) -> Result<Type, ParseError> {
-        match self.parse_ident()?.as_str() {
-            "int" => Ok(Type::Int),
-            "string" => Ok(Type::String),
-            "bool" => Ok(Type::Bool),
-            _ => Err(ParseError::UnknownType),
+    pub fn parse(&mut self) -> Result<Program, ParseError> {
+        let mut stmts = Vec::new();
+        while self.peek().is_some() {
+            stmts.push(self.parse_stmt()?);
         }
-    }
 
-    pub(crate) fn parse_var_decl(&mut self) -> Result<Stmt, ParseError> {
-        let name = self.parse_ident()?;
-        self.expect(TokenKind::Colon)?;
-        let type_ = self.parse_type_name()?;
-        self.expect(TokenKind::Equal)?;
-        let value = self.parse_expr()?;
-        Ok(Stmt::VarDeclare { type_, name, value })
-    }
-
-    pub(crate) fn parse_var_assign(&mut self) -> Result<Stmt, ParseError> {
-        let name = self.parse_ident()?;
-        self.expect(TokenKind::Equal)?;
-        let value = self.parse_expr()?;
-        Ok(Stmt::Assign { name, value })
+        Ok(Program { stmts })
     }
 }

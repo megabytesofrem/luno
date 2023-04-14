@@ -18,6 +18,12 @@ pub enum ParseError {
     UnknownType,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum ScopeError {
+    NotInScope { name: String },
+    AlreadyInScope { name: String },
+}
+
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
