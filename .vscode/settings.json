@@ -1,5 +1,17 @@
 {
     "rust-analyzer.linkedProjects": [
         "./luno/Cargo.toml"
-    ]
+    ],
+    "files.associations": {
+        "*.tsu": "ruby",
+        "*.lu": "ruby",
+        "stdint.h": "c",
+        "stddef.h": "c",
+        "ctype.h": "c",
+        "limits.h": "c",
+        "float.h": "c",
+        "time.h": "c",
+        "math.h": "c",
+        "atomic_ops.h": "c"
+    }
 }

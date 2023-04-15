@@ -1,8 +1,8 @@
 use std::iter::Peekable;
 
 use crate::{
-    ast::{Block, Expr, Program, Stmt, Type},
-    error::ParseError,
+    ast::{Block, Expr, Stmt, Type, AST},
+    error::SyntaxError,
     lexer::{lex_tokens, Token, TokenKind},
 };
 
@@ -38,34 +38,34 @@ impl<'a> Parser<'a> {
         token
     }
 
-    fn expect(&mut self, kind: TokenKind) -> Result<Token, ParseError> {
+    fn expect(&mut self, kind: TokenKind) -> Result<Token, SyntaxError> {
         let token = self.next();
         if let Some(token) = token {
             if token.kind == kind {
                 Ok(token)
             } else {
-                Err(ParseError::UnexpectedToken {
+                Err(SyntaxError::UnexpectedToken {
                     expected: kind,
                     found: token.kind,
                     location: token.span,
                 })
             }
         } else {
-            Err(ParseError::UnexpectedEOF {
+            Err(SyntaxError::UnexpectedEOF {
                 expected: kind,
                 location: self.pos..self.pos,
             })
         }
     }
 
-    fn eat(&mut self, tokens: &'static [TokenKind]) -> Result<Token, ParseError> {
+    fn eat(&mut self, tokens: &'static [TokenKind]) -> Result<Token, SyntaxError> {
         if let Some(token) = self.peek() {
             if tokens.contains(&token.kind) {
                 return Ok(self.next().unwrap());
             }
         }
 
-        Err(ParseError::UnexpectedToken {
+        Err(SyntaxError::UnexpectedToken {
             expected: TokenKind::EOF,
             found: self
                 .peek()
@@ -76,22 +76,22 @@ impl<'a> Parser<'a> {
     }
 
     // Parser methods
-    pub(crate) fn parse_ident(&mut self) -> Result<String, ParseError> {
+    fn parse_ident(&mut self) -> Result<String, SyntaxError> {
         let token = self.expect(TokenKind::Ident)?;
         Ok(self.src[token.span].to_string())
     }
 
-    pub(crate) fn parse_integer(&mut self) -> Result<i32, ParseError> {
+    fn parse_integer(&mut self) -> Result<i32, SyntaxError> {
         let token = self.expect(TokenKind::Integer)?;
         Ok(self.src[token.span].parse().unwrap())
     }
 
-    pub(crate) fn parse_string(&mut self) -> Result<String, ParseError> {
+    fn parse_string(&mut self) -> Result<String, SyntaxError> {
         let token = self.expect(TokenKind::String)?;
         Ok(self.src[token.span].to_string())
     }
 
-    pub(crate) fn parse_call(&mut self) -> Result<Expr, ParseError> {
+    fn parse_call(&mut self) -> Result<Expr, SyntaxError> {
         let name = self.parse_ident()?;
         self.expect(TokenKind::LParen)?;
         let mut args = Vec::new();
@@ -104,7 +104,7 @@ impl<'a> Parser<'a> {
                     args.push(self.parse_literal()?);
                 }
             } else {
-                return Err(ParseError::UnexpectedEOF {
+                return Err(SyntaxError::UnexpectedEOF {
                     expected: TokenKind::RParen,
                     location: self.pos..self.pos,
                 });
@@ -113,7 +113,7 @@ impl<'a> Parser<'a> {
         Ok(Expr::Call(name, args))
     }
 
-    pub(crate) fn parse_literal(&mut self) -> Result<Expr, ParseError> {
+    fn parse_literal(&mut self) -> Result<Expr, SyntaxError> {
         let token = self.next();
         if let Some(token) = token {
             match token.kind {
@@ -131,7 +131,7 @@ impl<'a> Parser<'a> {
                         }
                     } else {
                         // Return unexpected EOF error
-                        Err(ParseError::UnexpectedEOF {
+                        Err(SyntaxError::UnexpectedEOF {
                             expected: TokenKind::RSquare,
                             location: self.pos..self.pos,
                         })
@@ -150,7 +150,7 @@ impl<'a> Parser<'a> {
                                 exprs.push(self.parse_literal()?);
                             }
                         } else {
-                            return Err(ParseError::UnexpectedEOF {
+                            return Err(SyntaxError::UnexpectedEOF {
                                 expected: TokenKind::RSquare,
                                 location: self.pos..self.pos,
                             });
@@ -158,14 +158,14 @@ impl<'a> Parser<'a> {
                     }
                     Ok(Expr::Array(exprs))
                 }
-                _ => Err(ParseError::UnexpectedToken {
+                _ => Err(SyntaxError::UnexpectedToken {
                     expected: TokenKind::Literal,
                     found: token.kind,
                     location: token.span,
                 }),
             }
         } else {
-            Err(ParseError::UnexpectedEOF {
+            Err(SyntaxError::UnexpectedEOF {
                 expected: TokenKind::Integer,
                 location: self.pos..self.pos,
             })
@@ -173,7 +173,7 @@ impl<'a> Parser<'a> {
     }
 
     // Expression parsing
-    pub(crate) fn parse_factor(&mut self) -> Result<Expr, ParseError> {
+    fn parse_factor(&mut self) -> Result<Expr, SyntaxError> {
         let mut left = self.parse_literal()?;
         while let Ok(op) = self.eat(&[TokenKind::Star, TokenKind::Slash]) {
             let right = self.parse_literal()?;
@@ -183,7 +183,7 @@ impl<'a> Parser<'a> {
         Ok(left)
     }
 
-    pub(crate) fn parse_term(&mut self) -> Result<Expr, ParseError> {
+    fn parse_term(&mut self) -> Result<Expr, SyntaxError> {
         let mut left = self.parse_factor()?;
         while let Ok(op) = self.eat(&[TokenKind::Plus, TokenKind::Minus]) {
             let right = self.parse_factor()?;
@@ -193,7 +193,7 @@ impl<'a> Parser<'a> {
         Ok(left)
     }
 
-    pub(crate) fn parse_compare(&mut self) -> Result<Expr, ParseError> {
+    fn parse_compare(&mut self) -> Result<Expr, SyntaxError> {
         let mut left = self.parse_term()?;
         while let Ok(op) = self.eat(&[
             TokenKind::Equal,
@@ -211,22 +211,22 @@ impl<'a> Parser<'a> {
         Ok(left)
     }
 
-    pub fn parse_expr(&mut self) -> Result<Expr, ParseError> {
+    pub fn parse_expr(&mut self) -> Result<Expr, SyntaxError> {
         self.parse_compare()
     }
 
     // Statement parsing
 
-    pub(crate) fn parse_type_name(&mut self) -> Result<Type, ParseError> {
+    fn parse_type_name(&mut self) -> Result<Type, SyntaxError> {
         match self.parse_ident()?.as_str() {
             "int" => Ok(Type::Int),
             "string" => Ok(Type::String),
             "bool" => Ok(Type::Bool),
-            _ => Err(ParseError::UnknownType),
+            _ => Err(SyntaxError::UnknownType),
         }
     }
 
-    pub(crate) fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
+    fn parse_stmt(&mut self) -> Result<Stmt, SyntaxError> {
         let next_token = self.next().unwrap();
         match next_token.kind {
             TokenKind::Var => {
@@ -284,20 +284,42 @@ impl<'a> Parser<'a> {
                 let block = self.parse_block()?;
                 Ok(Stmt::While { cond, block })
             }
+            TokenKind::Fn => {
+                let name = self.parse_ident()?;
+                self.expect(TokenKind::LParen)?;
+                let mut params = Vec::new();
+                while self.peek().unwrap().kind != TokenKind::RParen {
+                    let name = self.parse_ident()?;
+                    self.expect(TokenKind::Colon)?;
+                    let type_ = self.parse_type_name()?;
+                    params.push((type_, name));
+                    if self.peek().unwrap().kind == TokenKind::Comma {
+                        self.next();
+                    }
+                }
+                self.expect(TokenKind::RParen)?;
+                let block = self.parse_block()?;
+                Ok(Stmt::Function {
+                    name,
+                    params,
+                    return_type: Type::Unspecified,
+                    block,
+                })
+            }
             TokenKind::Import => {
                 let path = self.parse_ident()?;
                 Ok(Stmt::Import { path })
             }
             TokenKind::Ret => {
                 let value = self.parse_expr()?;
-                Ok(Stmt::Ret { value })
+                Ok(Stmt::Return { value })
             }
 
             _ => todo!(),
         }
     }
 
-    pub(crate) fn parse_block(&mut self) -> Result<Block, ParseError> {
+    fn parse_block(&mut self) -> Result<Block, SyntaxError> {
         let mut stmts = Vec::new();
         while self.peek().unwrap().kind != TokenKind::End {
             stmts.push(self.parse_stmt()?);
@@ -307,12 +329,26 @@ impl<'a> Parser<'a> {
         Ok(Block { stmts })
     }
 
-    pub fn parse(&mut self) -> Result<Program, ParseError> {
+    /// Parse the entire program and return the AST
+    pub fn parse(&mut self) -> Result<AST, SyntaxError> {
         let mut stmts = Vec::new();
         while self.peek().is_some() {
             stmts.push(self.parse_stmt()?);
         }
 
-        Ok(Program { stmts })
+        Ok(AST { stmts })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_parse() {
+        let mut parser = Parser::new("var x = 1");
+        let ast = parser.parse_stmt().unwrap();
+
+        println!("{:#?}", ast)
     }
 }

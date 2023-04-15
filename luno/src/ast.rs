@@ -5,14 +5,16 @@ pub enum Expr {
     Int(i32),
     Float(f32),
     String(String),
+    Boolean(bool),
 
     Array(Vec<Expr>),
+    Table(Vec<(Expr, Expr)>),
     Binary(TokenKind, Box<Expr>, Box<Expr>),
     Ident(String),
     Call(String, Vec<Expr>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Int,
     String,
@@ -20,8 +22,11 @@ pub enum Type {
     Bool,
     Array(Box<Type>),
 
+    /// A table type similar to a dictionary in Python
+    Table(Box<Type>, Box<Type>),
+
     /// A function type
-    Fn(Vec<Type>, Box<Type>),
+    Function(Vec<Type>, Box<Type>),
 
     Unspecified,
 }
@@ -60,16 +65,22 @@ pub enum Stmt {
         cond: Expr,
         block: Block,
     },
+    Function {
+        name: String,
+        params: Vec<(Type, String)>,
+        return_type: Type,
+        block: Block,
+    },
     Import {
         path: String,
     },
-    Ret {
+    Return {
         value: Expr,
     },
 }
 
 #[derive(Debug, Clone)]
-pub struct Program {
-    /// List of statements in the program
+pub struct AST {
+    /// List of statements in the AST
     pub stmts: Vec<Stmt>,
 }

@@ -2,13 +2,13 @@
 use std::collections::HashMap;
 
 use crate::{
-    ast::{Block, Program, Stmt, Type},
-    error::ScopeError,
+    ast::{Block, Stmt, Type, AST},
+    error::SyntaxError,
 };
 
 #[derive(Debug, Clone)]
 pub struct Scope {
-    pub vars: HashMap<String, Type>,
+    pub symbols: HashMap<String, Type>,
 }
 
 #[derive(Debug, Clone)]
@@ -19,9 +19,9 @@ pub struct ScopeResolver {
 }
 
 impl Scope {
-    pub fn new(&self) -> Self {
+    pub fn new() -> Self {
         Self {
-            vars: HashMap::new(),
+            symbols: HashMap::new(),
         }
     }
 }
@@ -33,7 +33,7 @@ impl ScopeResolver {
 
     fn resolve(&mut self, name: &str) -> Option<Type> {
         for scope in self.scopes.iter().rev() {
-            if let Some(t) = scope.vars.get(name) {
+            if let Some(t) = scope.symbols.get(name) {
                 return Some(t.clone());
             }
         }
@@ -49,17 +49,16 @@ impl ScopeResolver {
         self.scopes
             .last_mut()
             .unwrap()
-            .vars
+            .symbols
             .insert(name.to_string(), type_);
     }
 
-    /// Walk the AST and recursively resolve all the variables, entering blocks
-    /// if necessary.
-    pub fn walk_ast(&mut self, ast: &Program) -> Result<(), ScopeError> {
-        ast.stmts.iter().try_for_each(|stmt| self.walk_stmt(stmt))
+    /// Visit the AST and resolve all variables
+    pub fn visit_ast(&mut self, ast: &AST) -> Result<(), SyntaxError> {
+        ast.stmts.iter().try_for_each(|stmt| self.visit_stmt(stmt))
     }
 
-    fn walk_stmt(&mut self, stmt: &Stmt) -> Result<(), ScopeError> {
+    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), SyntaxError> {
         match stmt {
             Stmt::VarDeclare { type_, name, .. } => {
                 // Keep track of the variable in the current scope
@@ -67,7 +66,7 @@ impl ScopeResolver {
             }
             Stmt::Assign { name, .. } => {
                 if self.resolve(name).is_none() {
-                    return Err(ScopeError::NotInScope { name: name.clone() });
+                    return Err(SyntaxError::NotInScope { name: name.clone() });
                 }
             }
             Stmt::If {
@@ -75,9 +74,9 @@ impl ScopeResolver {
                 then_block,
                 else_block,
             } => {
-                self.walk_block(then_block)?;
+                self.visit_block(then_block)?;
                 if let Some(else_block) = else_block {
-                    self.walk_block(else_block)?;
+                    self.visit_block(else_block)?;
                 }
             }
             Stmt::For {
@@ -88,11 +87,11 @@ impl ScopeResolver {
                 // We don't know the type of the range, so we just assume it's unspecified.
                 self.insert(name, Type::Unspecified);
 
-                // Walk the block recursively
-                self.walk_block(block)?;
+                // Visit the block recursively
+                self.visit_block(block)?;
             }
             Stmt::While { cond: _, block } => {
-                self.walk_block(block)?;
+                self.visit_block(block)?;
             }
             _ => {}
         }
@@ -100,12 +99,18 @@ impl ScopeResolver {
         Ok(())
     }
 
-    fn walk_block(&mut self, ast: &Block) -> Result<(), ScopeError> {
+    fn visit_block(&mut self, ast: &Block) -> Result<(), SyntaxError> {
         for stmt in ast.stmts.iter() {
-            self.walk_stmt(stmt)?;
+            self.visit_stmt(stmt)?;
         }
 
         Ok(())
+    }
+}
+
+impl Default for Scope {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
