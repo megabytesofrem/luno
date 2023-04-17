@@ -1,8 +1,5 @@
 ///! The type checker pass
-use crate::{
-    ast::{Block, Expr, Stmt, Type, AST},
-    error::SyntaxError,
-};
+use crate::{error::SyntaxError, parser::ast::*};
 
 use super::scope::Scope;
 
@@ -15,6 +12,7 @@ pub struct TypeChecker {
     pub scope_stack: Vec<Scope>,
 }
 
+#[allow(dead_code)]
 impl TypeChecker {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
@@ -191,8 +189,9 @@ impl TypeChecker {
                 let type_ = self.infer(expr)?;
                 self.visit_expr(expr, &type_)?;
             }
-            Stmt::Return { value } => {
+            Stmt::Return { expr: _ } => {
                 // TODO: check if we are in a function and return the correct type
+                todo!()
             }
             _ => todo!(),
         }
@@ -200,7 +199,7 @@ impl TypeChecker {
         Ok(())
     }
 
-    pub fn visit_ast(&mut self, program: &AST) -> Result<(), SyntaxError> {
+    pub fn visit_ast(&mut self, program: &Ast) -> Result<(), SyntaxError> {
         program
             .stmts
             .iter()

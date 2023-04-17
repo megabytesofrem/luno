@@ -1,10 +1,7 @@
 ///! Tree walk scope resolver.
 use std::collections::HashMap;
 
-use crate::{
-    ast::{Block, Stmt, Type, AST},
-    error::SyntaxError,
-};
+use crate::{error::SyntaxError, parser::ast::*};
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -54,7 +51,7 @@ impl ScopeResolver {
     }
 
     /// Visit the AST and resolve all variables
-    pub fn visit_ast(&mut self, ast: &AST) -> Result<(), SyntaxError> {
+    pub fn visit_ast(&mut self, ast: &Ast) -> Result<(), SyntaxError> {
         ast.stmts.iter().try_for_each(|stmt| self.visit_stmt(stmt))
     }
 

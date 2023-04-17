@@ -1,6 +1,6 @@
 use crate::{
-    ast::Type,
     lexer::{Location, TokenKind},
+    parser::ast::Type,
 };
 
 use thiserror::Error;

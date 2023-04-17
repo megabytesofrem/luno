@@ -19,6 +19,10 @@ pub enum TokenKind {
     LSquare,
     #[token("]")]
     RSquare,
+    #[token("{")]
+    LBrace,
+    #[token("}")]
+    RBrace,
     #[token("=")]
     Equal,
     #[token("==")]
@@ -45,6 +49,8 @@ pub enum TokenKind {
     // Keywords
     #[token("import")]
     Import,
+    #[token("as")]
+    As,
     #[token("if")]
     If,
     #[token("else")]
@@ -67,12 +73,12 @@ pub enum TokenKind {
     Then,
     #[token("end")]
     End,
-    #[token("ret")]
-    Ret,
+    #[token("return")]
+    Return,
 
     // Literals
     #[regex(r"[0-9]+")]
-    Integer,
+    Int,
     #[regex(r#""([^"\\]|\\.)*""#)]
     String,
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*")]
