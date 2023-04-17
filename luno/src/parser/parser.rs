@@ -582,10 +582,14 @@ var x = 2
         assert_eq!(
             ast,
             Ast {
-                import_list: vec![DottedPath { path_components: vec!["foo_mod".to_string(), "bar".to_string()] }],
+                import_list: vec![DottedPath {
+                    path_components: vec!["foo_mod".to_string(), "bar".to_string()]
+                }],
                 stmts: vec![
                     Stmt::Import {
-                        path: DottedPath { path_components: vec!["foo_mod".to_string(), "bar".to_string()] },
+                        path: DottedPath {
+                            path_components: vec!["foo_mod".to_string(), "bar".to_string()]
+                        },
                         alias_name: Some("bar".to_string())
                     },
                     Stmt::VarDeclare {
@@ -600,5 +604,6 @@ var x = 2
                     }
                 ]
             }
+        )
     }
 }
