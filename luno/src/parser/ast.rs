@@ -16,12 +16,6 @@ pub enum Expr {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct DottedPath {
-    /// List of path components
-    pub path_components: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub enum Operator {
     Add,
     Sub,
@@ -57,13 +51,16 @@ pub enum Type {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Block {
-    /// List of statements in the block
-    pub stmts: Vec<Stmt>,
+pub struct DottedPath {
+    /// List of path components
+    pub path_components: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
+    Block {
+        stmts: Vec<Stmt>,
+    },
     VarDeclare {
         type_: Type,
         name: String,
@@ -78,23 +75,23 @@ pub enum Stmt {
     },
     If {
         cond: Expr,
-        then_block: Block,
-        else_block: Option<Block>,
+        then_block: Box<Stmt>,
+        else_block: Option<Box<Stmt>>,
     },
     For {
         name: String,
         range: Expr,
-        block: Block,
+        block: Box<Stmt>,
     },
     While {
         cond: Expr,
-        block: Block,
+        block: Box<Stmt>,
     },
     Function {
         name: String,
         params: Vec<(String, Type)>,
         return_type: Type,
-        block: Block,
+        block: Box<Stmt>,
     },
     Import {
         path: DottedPath,

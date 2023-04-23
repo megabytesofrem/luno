@@ -351,8 +351,8 @@ impl<'a> Parser<'a> {
 
         Ok(Stmt::If {
             cond,
-            then_block,
-            else_block,
+            then_block: Box::new(then_block),
+            else_block: else_block.map(Box::new),
         })
     }
 
@@ -363,7 +363,11 @@ impl<'a> Parser<'a> {
         let range = self.parse_expr()?;
         self.expect(TokenKind::Do)?;
         let block = self.parse_block()?;
-        Ok(Stmt::For { name, range, block })
+        Ok(Stmt::For {
+            name,
+            range,
+            block: Box::new(block),
+        })
     }
 
     fn parse_while(&mut self) -> Result<Stmt, SyntaxError> {
@@ -371,7 +375,10 @@ impl<'a> Parser<'a> {
         let cond = self.parse_expr()?;
         self.expect(TokenKind::Do)?;
         let block = self.parse_block()?;
-        Ok(Stmt::While { cond, block })
+        Ok(Stmt::While {
+            cond,
+            block: Box::new(block),
+        })
     }
 
     fn parse_fn(&mut self) -> Result<Stmt, SyntaxError> {
@@ -413,7 +420,7 @@ impl<'a> Parser<'a> {
         Ok(Stmt::Function {
             name,
             params,
-            block,
+            block: Box::new(block),
             return_type,
         })
     }
@@ -459,13 +466,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_block(&mut self) -> Result<Block, SyntaxError> {
+    pub fn parse_block(&mut self) -> Result<Stmt, SyntaxError> {
         let mut stmts = Vec::new();
         while !&[TokenKind::Else, TokenKind::End].contains(&self.peek().unwrap().kind) {
             stmts.push(self.parse_stmt()?);
         }
 
-        Ok(Block { stmts })
+        Ok(Stmt::Block { stmts })
     }
 
     /// Parse a complete program into an AST
@@ -541,7 +548,7 @@ end
                 name: "abc".to_string(),
                 params: vec![("foo".to_string(), Type::Int)],
                 return_type: Type::Int,
-                block: Block {
+                block: Box::new(Stmt::Block {
                     stmts: vec![
                         Stmt::VarDeclare {
                             type_: Type::Unspecified,
@@ -561,7 +568,7 @@ end
                             )
                         }
                     ]
-                }
+                })
             }
         )
     }
