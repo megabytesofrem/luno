@@ -19,7 +19,10 @@ pub enum SyntaxError {
         location: Location,
         expected: TokenKind,
     },
+}
 
+#[derive(Debug, PartialEq, Error)]
+pub enum RuntimeError {
     #[error("Type mismatch: expected {expected:?}, but got {found:?}")]
     TypeMismatch { found: Type, expected: Type },
 
@@ -29,8 +32,8 @@ pub enum SyntaxError {
     #[error("Variable {name} is already in scope")]
     AlreadyInScope { name: String },
 
-    #[error("Expected {expected} arguments, but got {found}")]
-    WrongNumberOfArgs { expected: usize, found: usize },
+    #[error("Expected {expected} arguments, but got {actual}")]
+    WrongNumberOfArgs { expected: usize, actual: usize },
 
     #[error("{name} is not a function")]
     NotAFunction { name: String },

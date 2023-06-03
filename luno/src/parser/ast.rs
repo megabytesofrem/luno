@@ -1,37 +1,8 @@
 use crate::lexer::TokenKind;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Expr {
-    Int(i32),
-    Float(f32),
-    String(String),
-    Boolean(bool),
+use super::operator::Operator;
 
-    Array(Vec<Expr>),
-    Table(Vec<(String, Expr)>),
-    Unary(Operator, Box<Expr>),
-    Binary(Operator, Box<Expr>, Box<Expr>),
-    Ident(String),
-    Call(String, Vec<Expr>),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Operator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Pow,
-    Eq,
-    NotEq,
-    Lt,
-    Gt,
-    LtEq,
-    GtEq,
-    And,
-    Or,
-}
+pub type FunctionID = usize;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
@@ -51,9 +22,31 @@ pub enum Type {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct DottedPath {
-    /// List of path components
-    pub path_components: Vec<String>,
+pub enum Expr {
+    Int(i32),
+    Float(f32),
+    String(String),
+    Bool(bool),
+    Ident(String),
+
+    Array(Vec<Expr>),
+    Slice(Box<Expr>, Box<Expr>), // array[expr]
+    Table(Vec<(String, Expr)>),
+    Unary(Operator, Box<Expr>),
+    Binary(Operator, Box<Expr>, Box<Expr>),
+    Call(String, Vec<Expr>),
+}
+
+impl PartialOrd for Expr {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Expr::Int(lhs), Expr::Int(rhs)) => lhs.partial_cmp(rhs),
+            (Expr::Float(lhs), Expr::Float(rhs)) => lhs.partial_cmp(rhs),
+            (Expr::String(lhs), Expr::String(rhs)) => lhs.partial_cmp(rhs),
+            (Expr::Bool(lhs), Expr::Bool(rhs)) => lhs.partial_cmp(rhs),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -75,8 +68,8 @@ pub enum Stmt {
     },
     If {
         cond: Expr,
-        then_block: Box<Stmt>,
-        else_block: Option<Box<Stmt>>,
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
     },
     For {
         name: String,
@@ -102,6 +95,12 @@ pub enum Stmt {
     Return {
         expr: Expr,
     },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DottedPath {
+    /// List of path components
+    pub path_components: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -2,6 +2,6 @@
 pub mod error;
 pub mod lexer;
 pub mod parser;
+pub mod visit;
 
-/// Semantic analysis passes
-pub mod passes;
+pub mod interpreter;
